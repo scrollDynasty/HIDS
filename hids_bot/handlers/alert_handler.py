@@ -57,7 +57,7 @@ async def cmd_alert_detail(message: types.Message, db_manager: DatabaseManager):
     """Получить детальную информацию об IP-адресе"""
     args = message.text.split()
     if len(args) < 2:
-        await message.answer("Использование: /alert_detail <IP-адрес>")
+        await message.answer("Использование: /alert_detail [IP-адрес]")
         return
     
     ip = args[1]

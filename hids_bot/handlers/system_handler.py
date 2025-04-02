@@ -25,50 +25,73 @@ router = Router(name="system_router")
 @router.message(Command("system"))
 async def cmd_system(message: types.Message):
     """Показывает общую информацию о системе"""
-    # Получаем системную информацию
-    system_info = {
-        "os": platform.system(),
-        "release": platform.release(),
-        "version": platform.version(),
-        "cpu_usage": psutil.cpu_percent(interval=1),
-        "memory": psutil.virtual_memory(),
-        "uptime": get_uptime(),
-        "hostname": platform.node()
-    }
-    
-    # Проверяем статус HIDS
-    hids_status = check_hids_status()
-    
-    # Формируем сообщение
-    response = (
-        "🖥 <b>Информация о системе</b>\n\n"
-        f"<b>Хост:</b> {system_info['hostname']}\n"
-        f"<b>ОС:</b> {system_info['os']} {system_info['release']}\n"
-        f"<b>Версия:</b> {system_info['version']}\n"
-        f"<b>Время работы:</b> {system_info['uptime']}\n\n"
+    try:
+        # Получаем системную информацию
+        system_info = {
+            "os": platform.system(),
+            "release": platform.release(),
+            "version": platform.version(),
+            "hostname": platform.node()
+        }
         
-        f"<b>CPU:</b> {system_info['cpu_usage']}%\n"
-        f"<b>Память:</b> {system_info['memory'].percent}% использовано\n"
-        f"<b>Всего памяти:</b> {format_bytes(system_info['memory'].total)}\n"
-        f"<b>Доступно памяти:</b> {format_bytes(system_info['memory'].available)}\n\n"
+        # Получаем данные о CPU и памяти
+        try:
+            system_info["cpu_usage"] = psutil.cpu_percent(interval=1)
+            system_info["memory"] = psutil.virtual_memory()
+        except Exception:
+            system_info["cpu_usage"] = "Н/Д"
+            system_info["memory"] = None
         
-        f"<b>Статус HIDS:</b> {hids_status}\n"
-    )
-    
-    # Добавляем кнопки
-    keyboard = types.InlineKeyboardMarkup(inline_keyboard=[
-        [
-            types.InlineKeyboardButton(text="📊 Сетевые соединения", callback_data="system:network"),
-            types.InlineKeyboardButton(text="📋 Запущенные процессы", callback_data="system:processes")
-        ],
-        [
-            types.InlineKeyboardButton(text="🔄 Обновить", callback_data="system:refresh"),
-            types.InlineKeyboardButton(text="📜 Логи", callback_data="system:logs")
-        ]
-    ])
-    
-    await message.answer(response, parse_mode="HTML", reply_markup=keyboard)
-    logger.info(f"Пользователь {message.from_user.id} запросил информацию о системе")
+        # Получаем время работы системы
+        system_info["uptime"] = get_uptime()
+        
+        # Проверяем статус HIDS
+        hids_status = check_hids_status()
+        
+        # Формируем сообщение
+        response = (
+            "🖥 <b>Информация о системе</b>\n\n"
+            f"<b>Хост:</b> {system_info['hostname']}\n"
+            f"<b>ОС:</b> {system_info['os']} {system_info['release']}\n"
+            f"<b>Версия:</b> {system_info['version']}\n"
+            f"<b>Время работы:</b> {system_info['uptime']}\n\n"
+        )
+        
+        # Добавляем информацию о CPU и памяти, если доступна
+        if isinstance(system_info["cpu_usage"], (int, float)):
+            response += f"<b>CPU:</b> {system_info['cpu_usage']}%\n"
+        else:
+            response += "<b>CPU:</b> Не удалось получить информацию\n"
+        
+        if system_info["memory"]:
+            response += (
+                f"<b>Память:</b> {system_info['memory'].percent}% использовано\n"
+                f"<b>Всего памяти:</b> {format_bytes(system_info['memory'].total)}\n"
+                f"<b>Доступно памяти:</b> {format_bytes(system_info['memory'].available)}\n\n"
+            )
+        else:
+            response += "<b>Память:</b> Не удалось получить информацию\n\n"
+        
+        response += f"<b>Статус HIDS:</b> {hids_status}\n"
+        
+        # Добавляем кнопки
+        keyboard = types.InlineKeyboardMarkup(inline_keyboard=[
+            [
+                types.InlineKeyboardButton(text="📊 Сетевые соединения", callback_data="system:network"),
+                types.InlineKeyboardButton(text="📋 Запущенные процессы", callback_data="system:processes")
+            ],
+            [
+                types.InlineKeyboardButton(text="🔄 Обновить", callback_data="system:refresh"),
+                types.InlineKeyboardButton(text="📜 Логи", callback_data="system:logs")
+            ]
+        ])
+        
+        await message.answer(response, parse_mode="HTML", reply_markup=keyboard)
+        logger.info(f"Пользователь {message.from_user.id} запросил информацию о системе")
+    except Exception as e:
+        error_msg = f"❌ <b>Ошибка при получении системной информации:</b> {str(e)}"
+        await message.answer(error_msg, parse_mode="HTML")
+        logger.error(f"Ошибка при выполнении команды /system: {e}")
 
 @router.message(Command("services"))
 async def cmd_services(message: types.Message):
@@ -81,35 +104,52 @@ async def cmd_services(message: types.Message):
     response = "🔍 <b>Статус сервисов:</b>\n\n"
     
     for service in services:
-        # Проверяем статус с помощью systemctl
-        result = cmd_executor.execute_command(f"systemctl is-active {service}")
-        status = "✅ активен" if result.strip() == "active" else "❌ неактивен"
-        
-        response += f"<b>{service}:</b> {status}\n"
+        try:
+            # Проверяем статус с помощью systemctl или service
+            result = cmd_executor.execute_command(f"systemctl is-active {service} 2>/dev/null || service {service} status 2>/dev/null || echo 'не найден'")
+            status = "✅ активен" if "active" in result.strip() or "running" in result.strip() else "❌ неактивен"
+            
+            response += f"<b>{service}:</b> {status}\n"
+        except Exception as e:
+            response += f"<b>{service}:</b> ❌ ошибка проверки\n"
     
     # Проверяем, есть ли правила iptables
-    iptables_rules = cmd_executor.execute_command("iptables -L -n")
-    
-    # Считаем количество правил
-    rule_count = 0
-    for line in iptables_rules.splitlines():
-        if line.startswith("ACCEPT") or line.startswith("DROP") or line.startswith("REJECT"):
-            rule_count += 1
-    
-    response += f"\n<b>Правила iptables:</b> {rule_count} активных правил\n"
+    try:
+        iptables_rules = cmd_executor.execute_command("iptables -L -n 2>/dev/null || echo 'Ошибка доступа к iptables'")
+        
+        # Считаем количество правил
+        rule_count = 0
+        for line in iptables_rules.splitlines():
+            if line.startswith("ACCEPT") or line.startswith("DROP") or line.startswith("REJECT"):
+                rule_count += 1
+        
+        response += f"\n<b>Правила iptables:</b> {rule_count} активных правил\n"
+    except Exception:
+        response += f"\n<b>Правила iptables:</b> Не удалось получить\n"
     
     # Проверяем открытые порты
-    open_ports = cmd_executor.execute_command("netstat -tuln | grep LISTEN")
-    response += "\n<b>Открытые порты:</b>\n"
-    
-    for line in open_ports.splitlines()[:10]:  # Ограничиваем вывод 10 строками
-        if ":" in line:
-            parts = line.split()
-            for part in parts:
-                if ":" in part:
-                    address = part
-                    response += f"• {address}\n"
+    try:
+        open_ports = cmd_executor.execute_command("netstat -tuln 2>/dev/null || ss -tuln 2>/dev/null || echo 'Не удалось получить информацию'")
+        response += "\n<b>Открытые порты:</b>\n"
+        
+        port_count = 0
+        for line in open_ports.splitlines():
+            if "LISTEN" in line and ":" in line:
+                parts = line.split()
+                for part in parts:
+                    if ":" in part:
+                        address = part
+                        response += f"• {address}\n"
+                        port_count += 1
+                        if port_count >= 10:  # Ограничиваем вывод 10 портами
+                            break
+                if port_count >= 10:
                     break
+                            
+        if port_count == 0:
+            response += "Открытых портов не обнаружено или недостаточно прав\n"
+    except Exception:
+        response += "\n<b>Открытые порты:</b> Не удалось получить информацию\n"
     
     await message.answer(response, parse_mode="HTML")
     logger.info(f"Пользователь {message.from_user.id} запросил статус сервисов")
@@ -119,16 +159,25 @@ async def cmd_logs(message: types.Message):
     """Показывает последние записи в системном журнале"""
     cmd_executor = CommandExecutor()
     
-    # Получаем последние 10 строк журнала
-    journal = cmd_executor.execute_command("journalctl -n 10 --no-pager")
-    
-    response = "📜 <b>Последние записи в журнале:</b>\n\n<pre>"
-    response += journal
-    response += "</pre>"
-    
-    # Если ответ слишком длинный, обрезаем его
-    if len(response) > 4000:
-        response = response[:3900] + "...</pre>\n\n[Сообщение обрезано]"
+    # Пытаемся получить логи из разных источников
+    try:
+        # Пробуем journalctl, если не работает, пробуем /var/log/syslog или messages
+        journal = cmd_executor.execute_command(
+            "journalctl -n 10 --no-pager 2>/dev/null || " +
+            "tail -n 10 /var/log/syslog 2>/dev/null || " +
+            "tail -n 10 /var/log/messages 2>/dev/null || " +
+            "echo 'Не удалось получить системные логи. Недостаточно прав или логи отсутствуют.'"
+        )
+        
+        response = "📜 <b>Последние записи в журнале:</b>\n\n<pre>"
+        response += journal
+        response += "</pre>"
+        
+        # Если ответ слишком длинный, обрезаем его
+        if len(response) > 4000:
+            response = response[:3900] + "...</pre>\n\n[Сообщение обрезано]"
+    except Exception as e:
+        response = f"❌ <b>Ошибка при получении логов:</b> {str(e)}"
     
     await message.answer(response, parse_mode="HTML")
     logger.info(f"Пользователь {message.from_user.id} запросил системные логи")
@@ -138,16 +187,46 @@ async def cmd_network(message: types.Message):
     """Показывает сетевые соединения"""
     cmd_executor = CommandExecutor()
     
-    # Получаем открытые сетевые соединения
-    netstat = cmd_executor.execute_command("netstat -tunapl | grep -v 'TIME_WAIT' | head -20")
-    
-    response = "🌐 <b>Активные сетевые соединения:</b>\n\n<pre>"
-    response += netstat
-    response += "</pre>"
-    
-    # Если ответ слишком длинный, обрезаем его
-    if len(response) > 4000:
-        response = response[:3900] + "...</pre>\n\n[Сообщение обрезано]"
+    try:
+        # Пытаемся получить информацию о сетевых соединениях из разных источников
+        netstat = cmd_executor.execute_command(
+            "netstat -tunapl 2>/dev/null | grep -v 'TIME_WAIT' | head -20 2>/dev/null || " +
+            "ss -tunapl 2>/dev/null | head -20 2>/dev/null || " +
+            "echo 'Не удалось получить информацию о сетевых соединениях. Недостаточно прав или утилиты отсутствуют.'"
+        )
+        
+        # Получаем информацию о сетевых интерфейсах
+        interfaces = cmd_executor.execute_command(
+            "ip addr 2>/dev/null || ifconfig 2>/dev/null || echo 'Не удалось получить информацию о сетевых интерфейсах.'"
+        )
+        
+        # Извлекаем только IP-адреса из вывода
+        ip_addresses = []
+        for line in interfaces.splitlines():
+            if "inet " in line:
+                parts = line.strip().split()
+                # Ищем значение после "inet"
+                for i, part in enumerate(parts):
+                    if part == "inet" and i + 1 < len(parts):
+                        ip_addresses.append(parts[i + 1])
+        
+        response = "🌐 <b>Сетевая информация</b>\n\n"
+        
+        if ip_addresses:
+            response += "<b>IP-адреса:</b>\n"
+            for ip in ip_addresses:
+                response += f"• {ip}\n"
+            response += "\n"
+        
+        response += "<b>Активные сетевые соединения:</b>\n\n<pre>"
+        response += netstat
+        response += "</pre>"
+        
+        # Если ответ слишком длинный, обрезаем его
+        if len(response) > 4000:
+            response = response[:3900] + "...</pre>\n\n[Сообщение обрезано]"
+    except Exception as e:
+        response = f"❌ <b>Ошибка при получении сетевой информации:</b> {str(e)}"
     
     await message.answer(response, parse_mode="HTML")
     logger.info(f"Пользователь {message.from_user.id} запросил информацию о сетевых соединениях")

@@ -60,16 +60,17 @@ run: build
 
 # Запуск бота
 bot:
-	cd hids_bot && python3 bot.py
+	cd hids_bot && ../.venv/bin/python bot.py
 
 # Настройка системы
 setup:
 	@echo "Установка зависимостей для HIDS..."
 	sudo apt-get update
-	sudo apt-get install -y build-essential libjsoncpp-dev python3-pip
+	sudo apt-get install -y build-essential libjsoncpp-dev python3-pip python3-venv
 	
-	@echo "Установка зависимостей для Telegram-бота..."
-	pip3 install -r hids_bot/requirements.txt
+	@echo "Создание виртуального окружения и установка зависимостей для Telegram-бота..."
+	python3 -m venv .venv
+	.venv/bin/pip install -r hids_bot/requirements.txt
 	
 	@echo "Создание директории для сокета..."
 	sudo mkdir -p /var/run/hids
@@ -80,4 +81,4 @@ setup:
 # Тестирование
 test:
 	@echo "Отправка тестового уведомления в HIDS..."
-	python3 test_hids_alert.py 
+	.venv/bin/python test_hids_alert.py

@@ -8,7 +8,7 @@ from aiogram import types, Router, F
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 
-from database.db_manager import DBManager
+from database.db_manager import DatabaseManager
 from utils.cmd_executor import CommandExecutor
 from utils.ip_validator import IPValidator
 
@@ -23,12 +23,12 @@ ip_states = {}
 DEFAULT_BAN_PERIOD = 24
 
 @router.message(Command("alerts"))
-async def cmd_alerts(message: types.Message, db_manager: DBManager):
+async def cmd_alerts(message: types.Message, db_manager: DatabaseManager):
     """Получить список последних уведомлений"""
     user_id = message.from_user.id
     
     # Получаем последние 10 уведомлений
-    alerts = db_manager.get_recent_alerts(limit=10)
+    alerts = db_manager.get_recent_incidents(limit=10)
     
     if not alerts:
         await message.answer("Нет недавних уведомлений о вторжениях.")
@@ -37,13 +37,14 @@ async def cmd_alerts(message: types.Message, db_manager: DBManager):
     # Формируем сообщение с уведомлениями
     response = "📋 <b>Последние уведомления:</b>\n\n"
     
-    for idx, alert in enumerate(alerts, 1):
-        alert_time = alert.get("timestamp", datetime.now()).strftime("%Y-%m-%d %H:%M:%S")
-        ip = alert.get("ip", "N/A")
-        reason = alert.get("reason", "Неизвестная причина")
+    for idx, incident in enumerate(alerts, 1):
+        ip = incident[0]
+        reason = incident[1]
+        alert_time = incident[2]
+        is_blocked = bool(incident[3])
         
         # Добавляем статус IP (заблокирован/не заблокирован)
-        status = "🔴 заблокирован" if ip in ip_states and ip_states[ip].get("blocked", False) else "🟢 не заблокирован"
+        status = "🔴 заблокирован" if is_blocked else "🟢 не заблокирован"
         
         response += f"{idx}. <b>IP:</b> {ip} ({status})\n"
         response += f"   <b>Причина:</b> {reason}\n"
@@ -52,7 +53,7 @@ async def cmd_alerts(message: types.Message, db_manager: DBManager):
     await message.answer(response, parse_mode="HTML")
 
 @router.message(Command("alert_detail"))
-async def cmd_alert_detail(message: types.Message, db_manager: DBManager):
+async def cmd_alert_detail(message: types.Message, db_manager: DatabaseManager):
     """Получить детальную информацию об IP-адресе"""
     args = message.text.split()
     if len(args) < 2:
@@ -68,7 +69,7 @@ async def cmd_alert_detail(message: types.Message, db_manager: DBManager):
         return
     
     # Получаем историю уведомлений для данного IP
-    alerts = db_manager.get_alerts_by_ip(ip)
+    alerts = db_manager.get_incidents_by_ip(ip)
     
     if not alerts:
         await message.answer(f"Нет уведомлений для IP-адреса {ip}.")

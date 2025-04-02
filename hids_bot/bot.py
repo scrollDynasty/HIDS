@@ -54,7 +54,7 @@ HIDS_SOCKET = os.getenv("HIDS_SOCKET", "/var/run/hids/alert.sock")
 # Инициализация бота
 async def main():
     # Настройка сессии
-    session = AiohttpSession(json_serialize=lambda obj: obj)
+    session = AiohttpSession()
     bot_properties = DefaultBotProperties(parse_mode="HTML")
     
     # Инициализация бота и диспетчера
@@ -63,28 +63,14 @@ async def main():
     
     # Инициализация БД
     db_manager = DatabaseManager("hids.db")
-    db_manager.init_db()
     
     # Регистрация мидлварей
-    dp.message.middleware.register(lambda handler, event, data: data.update({"db_manager": db_manager}))
-    dp.callback_query.middleware.register(lambda handler, event, data: data.update({"db_manager": db_manager}))
-    
-    # Регистрация роутеров
-    dp.include_router(auth_router)
-    dp.include_router(alert_router)
-    dp.include_router(system_router)
-    
-    # Коллбэк для обработки уведомлений от HIDS
-    async def handle_hids_notification(alert_info):
-        await process_hids_alert(alert_info, bot, ADMIN_CHAT_ID)
-    
-    # Инициализация и запуск слушателя HIDS
-    hids_listener = HIDSListener(
-        socket_path=HIDS_SOCKET,
-        db_manager=db_manager,
-        callback=handle_hids_notification
-    )
-    hids_listener.start()
+    async def db_middleware(handler, event, data):
+        data["db_manager"] = db_manager
+        return await handler(event, data)
+
+    dp.message.middleware(db_middleware)
+    dp.callback_query.middleware(db_middleware)
     
     # Обработчик команды /start
     @dp.message(Command("start"))
@@ -98,7 +84,7 @@ async def main():
             f"Я буду оповещать о потенциальных вторжениях и помогать управлять защитой.\n\n"
             f"Доступные команды:\n"
             f"/alerts - Показать последние уведомления\n"
-            f"/alert_detail <IP> - Показать детальную информацию об IP\n"
+            f"/alert_detail [IP] - Показать детальную информацию об IP\n"
             f"/system - Показать состояние системы\n"
             f"/help - Показать справку по всем командам"
         )
@@ -117,7 +103,7 @@ async def main():
             
             "<b>Управление уведомлениями:</b>\n"
             "/alerts - Показать последние уведомления\n"
-            "/alert_detail <IP> - Подробная информация об уведомлениях для IP\n\n"
+            "/alert_detail [IP] - Подробная информация об уведомлениях для IP\n\n"
             
             "<b>Системная информация:</b>\n"
             "/system - Проверить состояние системы\n"
@@ -133,14 +119,44 @@ async def main():
             "- Запустить трассировку\n"
         )
     
+    # Обработчик ошибок
+    @dp.error()
+    async def error_handler(exception):
+        logger.exception(f"Необработанная ошибка: {exception}")
+    
+    # Регистрация роутеров
+    dp.include_router(auth_router)
+    dp.include_router(alert_router)
+    dp.include_router(system_router)
+    
+    # Коллбэк для обработки уведомлений от HIDS
+    async def handle_hids_notification(alert_info):
+        try:
+            await process_hids_alert(alert_info, bot, ADMIN_CHAT_ID)
+        except Exception as e:
+            logger.error(f"Ошибка при обработке уведомления: {e}")
+    
+    # Инициализация и запуск слушателя HIDS
+    hids_listener = HIDSListener(
+        socket_path=HIDS_SOCKET,
+        db_manager=db_manager,
+        callback=handle_hids_notification
+    )
+    hids_listener.start()
+    
     try:
         # Отправка сообщения администратору о запуске бота
         if ADMIN_CHAT_ID:
-            await bot.send_message(
-                chat_id=ADMIN_CHAT_ID,
-                text="🚀 <b>Бот HIDS запущен!</b>\n\n"
-                     "Система готова к обнаружению вторжений и отправке уведомлений."
-            )
+            try:
+                admin_id = int(ADMIN_CHAT_ID)
+                await bot.send_message(
+                    chat_id=admin_id,
+                    text="🚀 <b>Бот HIDS запущен!</b>\n\n"
+                         "Система готова к обнаружению вторжений и отправке уведомлений."
+                )
+                logger.info(f"Отправлено приветственное сообщение администратору: {admin_id}")
+            except (ValueError, Exception) as e:
+                logger.error(f"Не удалось отправить сообщение администратору: {e}")
         
         # Запуск поллинга
         await dp.start_polling(bot)

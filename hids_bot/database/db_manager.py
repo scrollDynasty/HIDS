@@ -282,4 +282,41 @@ class DatabaseManager:
             logger.error(f"Ошибка при получении списка инцидентов: {e}")
             return []
         finally:
+            conn.close()
+    
+    def get_incidents_by_ip(self, ip: str) -> List[dict]:
+        """
+        Возвращает список инцидентов для указанного IP-адреса.
+        
+        Args:
+            ip: IP-адрес для поиска
+            
+        Returns:
+            Список словарей с информацией об инцидентах для данного IP
+        """
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute(
+                "SELECT id, ip, reason, timestamp, is_blocked FROM incidents "
+                "WHERE ip = ? ORDER BY timestamp DESC",
+                (ip,)
+            )
+            
+            incidents = []
+            for row in cursor.fetchall():
+                incidents.append({
+                    "id": row[0],
+                    "ip": row[1],
+                    "reason": row[2],
+                    "timestamp": datetime.datetime.strptime(row[3], "%Y-%m-%d %H:%M:%S"),
+                    "is_blocked": bool(row[4])
+                })
+            
+            return incidents
+        except sqlite3.Error as e:
+            logger.error(f"Ошибка при получении инцидентов для IP {ip}: {e}")
+            return []
+        finally:
             conn.close() 

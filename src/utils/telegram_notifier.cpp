@@ -9,7 +9,7 @@
 #include <unistd.h>
 #include <iostream>
 #include <fcntl.h>
-#include <json/json.h>  // Требуется libjsoncpp-dev
+#include <ctime>
 
 namespace hids {
 namespace telegram {
@@ -20,15 +20,16 @@ TelegramNotifier::TelegramNotifier(const std::string& socket_path)
 }
 
 bool TelegramNotifier::sendAlert(const std::string& ip, const std::string& reason) const {
-    // Создаем JSON-объект с информацией о событии
-    Json::Value alert;
-    alert["ip"] = ip;
-    alert["reason"] = reason;
-    alert["timestamp"] = utils::formatTime(std::time(nullptr));
+    // Создаем JSON-строку с информацией о событии
+    std::stringstream json_stream;
+    json_stream << "{";
+    json_stream << "\"ip\":\"" << ip << "\",";
+    json_stream << "\"reason\":\"" << reason << "\",";
+    json_stream << "\"timestamp\":\"" << utils::formatTime(std::time(nullptr)) << "\"";
+    json_stream << "}";
     
-    // Сериализуем JSON в строку
-    Json::StreamWriterBuilder writer;
-    std::string json_data = Json::writeString(writer, alert);
+    // Получаем JSON строку
+    std::string json_data = json_stream.str();
     
     // Отправляем данные через сокет
     return sendToSocket(json_data);

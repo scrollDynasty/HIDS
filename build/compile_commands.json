@@ -1,0 +1,44 @@
+[
+{
+  "directory": "/home/kali/projects/HIDS/build",
+  "command": "/usr/bin/clang++-16 -DBOOST_ATOMIC_DYN_LINK -DBOOST_ATOMIC_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -DBOOST_FILESYSTEM_NO_LIB -DBOOST_REGEX_DYN_LINK -DBOOST_REGEX_NO_LIB -DBOOST_SYSTEM_DYN_LINK -DBOOST_SYSTEM_NO_LIB -I/home/kali/projects/HIDS/include  -Wall -Wextra -pedantic -g -std=gnu++17 -o CMakeFiles/hids.dir/src/alert/alert_system.cpp.o -c /home/kali/projects/HIDS/src/alert/alert_system.cpp",
+  "file": "/home/kali/projects/HIDS/src/alert/alert_system.cpp",
+  "output": "CMakeFiles/hids.dir/src/alert/alert_system.cpp.o"
+},
+{
+  "directory": "/home/kali/projects/HIDS/build",
+  "command": "/usr/bin/clang++-16 -DBOOST_ATOMIC_DYN_LINK -DBOOST_ATOMIC_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -DBOOST_FILESYSTEM_NO_LIB -DBOOST_REGEX_DYN_LINK -DBOOST_REGEX_NO_LIB -DBOOST_SYSTEM_DYN_LINK -DBOOST_SYSTEM_NO_LIB -I/home/kali/projects/HIDS/include  -Wall -Wextra -pedantic -g -std=gnu++17 -o CMakeFiles/hids.dir/src/main.cpp.o -c /home/kali/projects/HIDS/src/main.cpp",
+  "file": "/home/kali/projects/HIDS/src/main.cpp",
+  "output": "CMakeFiles/hids.dir/src/main.cpp.o"
+},
+{
+  "directory": "/home/kali/projects/HIDS/build",
+  "command": "/usr/bin/clang++-16 -DBOOST_ATOMIC_DYN_LINK -DBOOST_ATOMIC_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -DBOOST_FILESYSTEM_NO_LIB -DBOOST_REGEX_DYN_LINK -DBOOST_REGEX_NO_LIB -DBOOST_SYSTEM_DYN_LINK -DBOOST_SYSTEM_NO_LIB -I/home/kali/projects/HIDS/include  -Wall -Wextra -pedantic -g -std=gnu++17 -o CMakeFiles/hids.dir/src/modules/behavior_analyzer.cpp.o -c /home/kali/projects/HIDS/src/modules/behavior_analyzer.cpp",
+  "file": "/home/kali/projects/HIDS/src/modules/behavior_analyzer.cpp",
+  "output": "CMakeFiles/hids.dir/src/modules/behavior_analyzer.cpp.o"
+},
+{
+  "directory": "/home/kali/projects/HIDS/build",
+  "command": "/usr/bin/clang++-16 -DBOOST_ATOMIC_DYN_LINK -DBOOST_ATOMIC_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -DBOOST_FILESYSTEM_NO_LIB -DBOOST_REGEX_DYN_LINK -DBOOST_REGEX_NO_LIB -DBOOST_SYSTEM_DYN_LINK -DBOOST_SYSTEM_NO_LIB -I/home/kali/projects/HIDS/include  -Wall -Wextra -pedantic -g -std=gnu++17 -o CMakeFiles/hids.dir/src/modules/file_integrity.cpp.o -c /home/kali/projects/HIDS/src/modules/file_integrity.cpp",
+  "file": "/home/kali/projects/HIDS/src/modules/file_integrity.cpp",
+  "output": "CMakeFiles/hids.dir/src/modules/file_integrity.cpp.o"
+},
+{
+  "directory": "/home/kali/projects/HIDS/build",
+  "command": "/usr/bin/clang++-16 -DBOOST_ATOMIC_DYN_LINK -DBOOST_ATOMIC_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -DBOOST_FILESYSTEM_NO_LIB -DBOOST_REGEX_DYN_LINK -DBOOST_REGEX_NO_LIB -DBOOST_SYSTEM_DYN_LINK -DBOOST_SYSTEM_NO_LIB -I/home/kali/projects/HIDS/include  -Wall -Wextra -pedantic -g -std=gnu++17 -o CMakeFiles/hids.dir/src/modules/log_monitor.cpp.o -c /home/kali/projects/HIDS/src/modules/log_monitor.cpp",
+  "file": "/home/kali/projects/HIDS/src/modules/log_monitor.cpp",
+  "output": "CMakeFiles/hids.dir/src/modules/log_monitor.cpp.o"
+},
+{
+  "directory": "/home/kali/projects/HIDS/build",
+  "command": "/usr/bin/clang++-16 -DBOOST_ATOMIC_DYN_LINK -DBOOST_ATOMIC_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -DBOOST_FILESYSTEM_NO_LIB -DBOOST_REGEX_DYN_LINK -DBOOST_REGEX_NO_LIB -DBOOST_SYSTEM_DYN_LINK -DBOOST_SYSTEM_NO_LIB -I/home/kali/projects/HIDS/include  -Wall -Wextra -pedantic -g -std=gnu++17 -o CMakeFiles/hids.dir/src/utils/telegram_notifier.cpp.o -c /home/kali/projects/HIDS/src/utils/telegram_notifier.cpp",
+  "file": "/home/kali/projects/HIDS/src/utils/telegram_notifier.cpp",
+  "output": "CMakeFiles/hids.dir/src/utils/telegram_notifier.cpp.o"
+},
+{
+  "directory": "/home/kali/projects/HIDS/build",
+  "command": "/usr/bin/clang++-16 -DBOOST_ATOMIC_DYN_LINK -DBOOST_ATOMIC_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -DBOOST_FILESYSTEM_NO_LIB -DBOOST_REGEX_DYN_LINK -DBOOST_REGEX_NO_LIB -DBOOST_SYSTEM_DYN_LINK -DBOOST_SYSTEM_NO_LIB -I/home/kali/projects/HIDS/include  -Wall -Wextra -pedantic -g -std=gnu++17 -o CMakeFiles/hids.dir/src/utils/utils.cpp.o -c /home/kali/projects/HIDS/src/utils/utils.cpp",
+  "file": "/home/kali/projects/HIDS/src/utils/utils.cpp",
+  "output": "CMakeFiles/hids.dir/src/utils/utils.cpp.o"
+}
+]

@@ -2,16 +2,13 @@
 
 <div align="center">
   
+![Версия](https://img.shields.io/badge/Версия-1.0.0-brightgreen.svg)
 ![Лицензия: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 ![C++](https://img.shields.io/badge/C%2B%2B-17-blue.svg)
 ![OpenSSL](https://img.shields.io/badge/OpenSSL-3.0-blue.svg)
 ![Платформа](https://img.shields.io/badge/Platform-Linux-lightgrey.svg)
 
 </div>
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/your-username/HIDS/main/docs/logo.png" alt="HIDS Logo" width="250"/>
-</p>
 
 Легковесная и мощная система обнаружения вторжений на хосте (HIDS), специализированная для мониторинга SSH-серверов. Написана на C++ с фокусом на производительность, масштабируемость и низкое потребление ресурсов.
 

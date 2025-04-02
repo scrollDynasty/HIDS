@@ -13,6 +13,7 @@
 #include "../include/modules/behavior_analyzer.hpp"
 #include "../include/alert/alert_system.hpp"
 #include "../include/utils/utils.hpp"
+#include "../include/utils/telegram_notifier.hpp"
 
 namespace fs = std::filesystem;
 
@@ -57,6 +58,9 @@ int main(int /*argc*/, char* /*argv*/[]) {
     // Инициализация системы оповещений
     auto alert_system = std::make_shared<hids::AlertSystem>();
     
+    // Инициализация Telegram-нотификатора
+    auto telegram_notifier = std::make_shared<hids::telegram::TelegramNotifier>();
+    
     // Настройка методов оповещения
     auto file_alert = std::make_shared<hids::FileAlertMethod>("hids_alerts.log");
     alert_system->addAlertMethod("file", file_alert);
@@ -78,15 +82,73 @@ int main(int /*argc*/, char* /*argv*/[]) {
     file_integrity->addFile("/etc/hosts.deny");
     
     // Установка обработчика изменений файлов
-    file_integrity->setFileChangeHandler([&alert_system](
+    file_integrity->setFileChangeHandler([&alert_system, &telegram_notifier](
         const std::string& path, 
         const hids::FileInfo& /*old_info*/, 
         const hids::FileInfo& /*new_info*/) {
-            // Дополнительная логика обработки изменений файлов
+            // Формируем сообщение
             std::stringstream ss;
             ss << "Изменен критичный файл: " << path;
-            hids::utils::writeSyslog(ss.str(), LOG_WARNING);
+            std::string message = ss.str();
+            
+            // Логируем в syslog
+            hids::utils::writeSyslog(message, LOG_WARNING);
+            
+            // Отправляем уведомление в Telegram
+            // IP устанавливаем как localhost, так как это локальное событие
+            telegram_notifier->sendAlert("127.0.0.1", message);
     });
+    
+    // Добавляем обработчик событий для модуля логов
+    log_monitor->setRegexPatterns({
+        {"failed_login", R"((\w+\s+\d+\s+\d+:\d+:\d+).*sshd\[\d+\]: Failed password for (.*) from (\d+\.\d+\.\d+\.\d+) port \d+)"},
+        {"invalid_user", R"((\w+\s+\d+\s+\d+:\d+:\d+).*sshd\[\d+\]: Failed password for invalid user (.*) from (\d+\.\d+\.\d+\.\d+) port \d+)"},
+        {"successful_login", R"((\w+\s+\d+\s+\d+:\d+:\d+).*sshd\[\d+\]: Accepted password for (.*) from (\d+\.\d+\.\d+\.\d+) port \d+)"},
+        {"logout", R"((\w+\s+\d+\s+\d+:\d+:\d+).*sshd\[\d+\]: pam_unix\(sshd:session\): session closed for user (.*))"}
+    });
+    
+    // Перехватываем оповещения о брутфорсе для отправки в Telegram
+    alert_system->enableAlertType("BRUTE_FORCE", true);
+    alert_system->setAlertSeverity("BRUTE_FORCE", 5); // Высокий приоритет
+    
+    // Создаем кастомный обработчик оповещений для пересылки в Telegram
+    class TelegramAlertMethod : public hids::AlertMethod {
+    public:
+        TelegramAlertMethod(std::shared_ptr<hids::telegram::TelegramNotifier> notifier)
+            : m_notifier(notifier) {}
+        
+        void sendAlert(const hids::Alert& alert) override {
+            // Отправляем только важные оповещения
+            if (alert.severity >= 3) {
+                // Если оповещение о брутфорсе или неудачном входе, извлекаем IP
+                std::string ip = "127.0.0.1"; // По умолчанию localhost
+                
+                // Извлекаем IP из сообщения (если это возможно)
+                if (alert.type == "BRUTE_FORCE" || alert.type == "FAILED_LOGIN") {
+                    // Примерный формат сообщения: "... IP=192.168.1.1 ..."
+                    size_t ip_pos = alert.message.find("IP=");
+                    if (ip_pos != std::string::npos) {
+                        size_t start = ip_pos + 3; // Длина "IP="
+                        size_t end = alert.message.find(' ', start);
+                        if (end != std::string::npos) {
+                            ip = alert.message.substr(start, end - start);
+                        } else {
+                            ip = alert.message.substr(start);
+                        }
+                    }
+                }
+                
+                m_notifier->sendAlert(ip, alert.message);
+            }
+        }
+    
+    private:
+        std::shared_ptr<hids::telegram::TelegramNotifier> m_notifier;
+    };
+    
+    // Добавляем метод оповещения Telegram
+    auto telegram_alert = std::make_shared<TelegramAlertMethod>(telegram_notifier);
+    alert_system->addAlertMethod("telegram", telegram_alert);
     
     // Настройка модуля behavior_analyzer
     behavior_analyzer->setActiveTimeWindow(8, 20); // Рабочее время: 8:00 - 20:00

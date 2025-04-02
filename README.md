@@ -65,7 +65,7 @@
 
 ```bash
 # Клонируйте репозиторий
-git clone https://github.com/your-username/HIDS.git
+git clone https://github.com/scrollDynasty/HIDS.git
 cd HIDS
 
 # Настройка и установка зависимостей

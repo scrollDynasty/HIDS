@@ -3,7 +3,7 @@
 # Переменные для компиляции
 CXX = g++
 CXXFLAGS = -std=c++17 -Wall -Wextra -O2
-LDFLAGS = -ljsoncpp
+LDFLAGS = -ljsoncpp -lssl -lcrypto
 
 # Пути
 SRC_DIR = src

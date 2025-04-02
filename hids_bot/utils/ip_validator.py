@@ -65,4 +65,48 @@ def get_geolocation(ip: str) -> dict:
     """
     # Заглушка - в реальном проекте здесь должен быть код для запроса геолокации
     # Например, с использованием библиотеки geoip2 или публичных API
-    return {"country": "Unknown", "city": "Unknown"} 
+    return {"country": "Unknown", "city": "Unknown"}
+
+class IPValidator:
+    """
+    Класс для валидации и работы с IP-адресами
+    """
+    
+    @staticmethod
+    def is_valid_ip(ip: str) -> bool:
+        """
+        Проверяет, является ли строка действительным IPv4-адресом.
+        
+        Args:
+            ip: Строка для проверки
+            
+        Returns:
+            True если строка является валидным IPv4-адресом, иначе False
+        """
+        return is_valid_ip(ip)
+    
+    @staticmethod
+    def get_hostname(ip: str) -> str:
+        """
+        Пытается получить имя хоста по IP-адресу.
+        
+        Args:
+            ip: IP-адрес для поиска
+            
+        Returns:
+            Имя хоста или пустую строку в случае ошибки
+        """
+        return get_hostname(ip)
+    
+    @staticmethod
+    def get_geolocation(ip: str) -> dict:
+        """
+        Получает геолокацию IP-адреса.
+        
+        Args:
+            ip: IP-адрес для поиска
+            
+        Returns:
+            Словарь с информацией о геолокации
+        """
+        return get_geolocation(ip) 
